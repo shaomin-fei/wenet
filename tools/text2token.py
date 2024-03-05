@@ -70,12 +70,14 @@ def get_parser():
                         default=False,
                         nargs='?',
                         help='input text')
-    parser.add_argument('--trans_type',
-                        '-t',
-                        type=str,
-                        default="char",
-                        choices=["char", "phn", "cn_char_en_bpe"],
-                        help="""Transcript type. char/phn. e.g., for TIMIT
+    parser.add_argument(
+        '--trans_type',
+        '-t',
+        type=str,
+        default="radio",
+        #default="cn_char_en_bpe",
+        choices=["char", "phn", "cn_char_en_bpe", "radio"],
+        help="""Transcript type. char/phn. e.g., for TIMIT
                              FADG0_SI1279 -
                              If trans_type is char, read from
                              SI1279.WRD file -> "bricks are an alternative"
@@ -83,6 +85,10 @@ def get_parser():
                              read from SI1279.PHN file ->
                              "sil b r ih sil k s aa r er n aa l
                              sil t er n ih sil t ih v sil" """)
+    # parser.add_argument('split_by_space',
+    #                     type=bool,
+    #                     default=True,
+    #                     help='If text is splitted by space or not, only effective when the type is char')
     return parser
 
 
@@ -152,9 +158,15 @@ def main():
                 for l in j.strip().split("▁"):
                     if not l.encode('UTF-8').isalpha():
                         a.append(l)
-                    else:
-                        for k in sp.encode_as_pieces(l):
-                            a.append(k)
+                    else:  # fsm:for our use case, we don't really need to split sentences, we only have limited words
+                        if args.bpe_model is not None:
+                            for k in sp.encode_as_pieces(l):
+                                a.append(k)
+                        else:
+                            a.append(l)
+        elif args.trans_type == "radio":
+            a = a.split(" ")
+
         else:
             a = [a[j:j + n] for j in range(0, len(a), n)]
 

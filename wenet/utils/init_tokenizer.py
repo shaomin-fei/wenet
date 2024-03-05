@@ -47,6 +47,12 @@ def init_tokenizer(configs) -> BaseTokenizer:
         tokenizer = ParaformerTokenizer(
             symbol_table=configs['tokenizer_conf']['symbol_table_path'],
             seg_dict=configs['tokenizer_conf']['seg_dict_path'])
+    elif tokenizer_type == 'radio':
+        tokenizer = CharTokenizer(
+            configs['tokenizer_conf']['symbol_table_path'],
+            configs['tokenizer_conf']['non_lang_syms_path'],
+            split_with_space=False,
+            connect_symbol=configs['tokenizer_conf'].get('connect_symbol', ''))
     else:
         raise NotImplementedError
     logging.info("use {} tokenizer".format(configs["tokenizer"]))

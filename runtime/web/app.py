@@ -17,8 +17,13 @@ import gradio as gr
 import wenet
 
 # TODO: add hotword
-chs_model = wenet.load_model('chinese')
-en_model = wenet.load_model('english')
+#chs_model = wenet.load_model('chinese')
+chs_model = wenet.load_model(
+    'chinese',
+    model_dir="/home/fsm/Desktop/asr/wenet/wenet/runtime/web/model/",
+    context_path=
+    "/home/fsm/Desktop/asr/wenet/wenet/runtime/web/context/context.txt")
+#en_model = wenet.load_model('english')
 
 
 def recognition(audio, lang='CN'):
@@ -35,16 +40,25 @@ def recognition(audio, lang='CN'):
     if ans is None:
         return "ERROR! No text output! Please try again!"
     txt = ans['text']
+    txt = txt.replace("死看", "SCAN")
     return txt
 
 
 # input
+
+# inputs = [
+#     gr.inputs.Audio(source="microphone", type="filepath", label='Input audio'),
+#     gr.Radio(['EN', 'CN'], label='Language')
+# ]
+
+# output = gr.outputs.Textbox(label="Output Text")
+
 inputs = [
-    gr.inputs.Audio(source="microphone", type="filepath", label='Input audio'),
+    gr.Audio(sources=["microphone"], type="filepath", label="Input audio"),
     gr.Radio(['EN', 'CN'], label='Language')
 ]
-
-output = gr.outputs.Textbox(label="Output Text")
+#inputs=[gr.Audio(sources=["microphone"],streaming=True,label="Input audio"),gr.Radio(['EN', 'CN'], label='Language')]
+output = gr.Textbox(label="Output Text")
 
 text = "Speech Recognition in WeNet | 基于 WeNet 的语音识别"
 
@@ -58,6 +72,16 @@ article = (
     "<a href='https://github.com/wenet-e2e/wenet' target='_blank'>Github: Learn more about WeNet</a>"  # noqa
     "</p>")
 
+# interface = gr.Interface(
+#     fn=recognition,
+#     inputs=inputs,
+#     outputs=output,
+#     title=text,
+#     description=description,
+#     article=article,
+#     theme='huggingface',
+# )
+
 interface = gr.Interface(
     fn=recognition,
     inputs=inputs,
@@ -66,6 +90,7 @@ interface = gr.Interface(
     description=description,
     article=article,
     theme='huggingface',
+    #live=True
 )
-
-interface.launch(enable_queue=True)
+interface.queue()
+interface.launch(share=True)

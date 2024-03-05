@@ -32,7 +32,7 @@ def tokenize(context_list_path, symbol_table, bpe_model=None):
     else:
         sp = None
 
-    with open(context_list_path, "r") as fin:
+    with open(context_list_path, "r", encoding="utf-8") as fin:
         context_txts = fin.readlines()
 
     context_list = []

@@ -72,8 +72,11 @@ class Executor:
                     context = nullcontext
 
                 with context():
+                    #print(f"start batch_index={batch_idx}")
                     info_dict = batch_forward(model, batch_dict, scaler,
                                               info_dict)
+                    #print(f"forward done {info_dict['loss_dict']}")
+
                     info_dict = batch_backward(model, scaler, info_dict)
 
                 info_dict = update_parameter_and_lr(model, optimizer,

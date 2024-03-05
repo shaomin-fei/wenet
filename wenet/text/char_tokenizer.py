@@ -53,6 +53,8 @@ class CharTokenizer(BaseTokenizer):
                 for ch in part:
                     if ch == ' ':
                         ch = "▁"
+                    # for now we don't support english words, so each character's len should be 1
+                    assert (len(ch) == 1)
                     tokens.append(ch)
         return tokens
 

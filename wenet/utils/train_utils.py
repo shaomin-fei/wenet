@@ -140,15 +140,21 @@ def add_deepspeed_args(parser):
     return parser
 
 
-def init_distributed(args):
+def init_distributed(args, device):
     world_size = int(os.environ.get('WORLD_SIZE', 1))
     local_rank = int(os.environ.get('LOCAL_RANK', 0))
     rank = int(os.environ.get('RANK', 0))
     logging.info('training on multiple gpus, this gpu {}'.format(local_rank) +
                  ', rank {}, world_size {}'.format(rank, world_size))
     if args.train_engine == "torch_ddp":
-        torch.cuda.set_device(local_rank)
-        dist.init_process_group(args.dist_backend)
+        if device == "cuda":
+            torch.cuda.set_device(local_rank)
+        # https://pytorch.org/tutorials/intermediate/ddp_tutorial.html, need MASTER_ADDR to initialize
+        os.environ['MASTER_ADDR'] = 'localhost'
+        os.environ['MASTER_PORT'] = '12355'
+        dist.init_process_group(args.dist_backend,
+                                rank=rank,
+                                world_size=world_size)
     elif args.train_engine == "deepspeed":
         deepspeed.init_distributed(dist_backend=args.dist_backend)
     else:
@@ -275,7 +281,7 @@ def init_dataset_and_dataloader(args, configs, tokenizer, seed=777):
     return train_dataset, cv_dataset, train_data_loader, cv_data_loader
 
 
-def wrap_cuda_model(args, model):
+def wrap_cuda_model(args, model, device):
     local_world_size = int(os.environ.get('LOCAL_WORLD_SIZE', 1))
     world_size = int(os.environ.get('WORLD_SIZE', 1))
     if hasattr(model, 'encoder'):
@@ -284,11 +290,11 @@ def wrap_cuda_model(args, model):
         grad_ckpt = False
     # TODO(xcsong): could one GPU use ddp? and int(os.environ.get('WORLD_SIZE', 1)) > 1
     if args.train_engine == "torch_ddp":  # native pytorch ddp
-        assert (torch.cuda.is_available())
-        model.cuda()
+        #assert (torch.cuda.is_available())
+        # model.cuda()
         model = torch.nn.parallel.DistributedDataParallel(
             model, find_unused_parameters=not grad_ckpt)
-        device = torch.device("cuda")
+        # device = torch.device("cuda")
         if args.fp16_grad_sync:
             from torch.distributed.algorithms.ddp_comm_hooks import (
                 default as comm_hooks, )
@@ -451,6 +457,8 @@ def batch_forward(model, batch, scaler, info_dict):
     train_engine = info_dict.get('train_engine', "torch_ddp")
     device = int(os.environ.get('LOCAL_RANK', 0))
     accum_grad = info_dict.get('accum_grad', 1)
+    if not torch.cuda.is_available():
+        device = "cpu"
 
     dtype = info_dict.get("dtype", "fp32")
     if dtype == "fp16":

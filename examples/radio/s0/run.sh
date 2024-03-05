@@ -31,7 +31,7 @@ data=../data
 data_url=www.openslr.org/resources/33
 
 nj=16
-dict=data/dict/lang_char.txt
+dict=../pretrained/units.txt
 
 # data_type can be `raw` or `shard`. Typically, raw is used for small dataset,
 # `shard` is used for large dataset which is over 1k hours, and `shard` is
@@ -50,10 +50,13 @@ train_set=train
 # 7. conf/train_u2++_conformer.yaml: U2++ lite conformer, must load a well
 #    trained model, and freeze encoder module, otherwise there will be a
 #    autograd error
-train_config=conf/train_conformer.yaml
+train_config=./exp/conformer/epoch_128.yaml
 dir=exp/conformer
 tensorboard_dir=tensorboard
-checkpoint=
+checkpoint=./exp/conformer/epoch_128.pt
+enc_init=
+#num_workers=8
+#fsm. on virtual machine, we only have 4 cpu cores
 num_workers=8
 prefetch=500
 
@@ -93,13 +96,13 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     rm data/${x}/text.org
   done
 
-  tools/compute_cmvn_stats.py --num_workers 16 --train_config $train_config \
+  python -m debugpy --listen 5678 --wait-for-client tools/compute_cmvn_stats.py --num_workers 16 --train_config $train_config \
     --in_scp data/${train_set}/wav.scp \
     --out_cmvn data/$train_set/global_cmvn
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-  echo "Make a dictionary"
+  echo "Make a dictionary for radio"
   mkdir -p $(dirname $dict)
   echo "<blank> 0" > ${dict}  # 0 is for "blank" in CTC
   echo "<unk> 1"  >> ${dict}  # <unk> must be 1
@@ -190,6 +193,23 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
       --pin_memory \
       --deepspeed_config ${deepspeed_config} \
       --deepspeed.save_states ${deepspeed_save_states}
+
+  # python \
+  #   wenet/bin/train.py \
+  #     --train_engine ${train_engine} \
+  #     --config $train_config \
+  #     --data_type  $data_type \
+  #     --train_data data/$train_set/data.list \
+  #     --cv_data data/dev/data.list \
+  #     ${checkpoint:+--checkpoint $checkpoint} \
+  #     --model_dir $dir \
+  #     --tensorboard_dir ${tensorboard_dir} \
+  #     --ddp.dist_backend $dist_backend \
+  #     --num_workers ${num_workers} \
+  #     --prefetch ${prefetch} \
+  #     --pin_memory \
+  #     --deepspeed_config ${deepspeed_config} \
+  #     --deepspeed.save_states ${deepspeed_save_states}
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then

@@ -59,7 +59,13 @@ def get_args():
 #   details of the error (e.g. time, rank, host, pid, traceback, etc).
 @record
 def main():
+    device = ("cuda" if torch.cuda.is_available() else
+              "mps" if torch.backends.mps.is_available() else "cpu")
     args = get_args()
+
+    if device == "cpu":
+        args.dist_backend = "gloo"  # default it's nccl, but nccl supports gpu only. https://pytorch.org/docs/stable/distributed.html
+
     logging.basicConfig(level=logging.DEBUG,
                         format='%(asctime)s %(levelname)s %(message)s')
 
@@ -76,7 +82,8 @@ def main():
     tokenizer = init_tokenizer(configs)
 
     # Init env for ddp OR deepspeed
-    _, _, rank = init_distributed(args)
+    rank = 0
+    _, _, rank = init_distributed(args, device)
 
     # Get dataset & dataloader
     train_dataset, cv_dataset, train_data_loader, cv_data_loader = \
@@ -96,7 +103,9 @@ def main():
     writer = init_summarywriter(args)
 
     # Dispatch model from cpu to gpu
-    model, device = wrap_cuda_model(args, model)
+    model.to(device)
+    # if device!="cpu":
+    model, device = wrap_cuda_model(args, model, device)
 
     # Get optimizer & scheduler
     model, optimizer, scheduler = init_optimizer_and_scheduler(
@@ -154,6 +163,9 @@ def main():
             'lr': lr,
             'step': executor.step,
             'save_time': datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
+            # fsm, when resuming training, the default epoch_x.yaml contians tag field, so the tag value here
+            # will be replaced by the default one, leading to no new pt file is created, but epoch_x.pt file is replaced over and over again
+            # so we need to remove tag field in epoch_x.yaml, or move 'tag':xx to the end
             'tag': "epoch_{}".format(epoch),
             'loss_dict': loss_dict,
             **configs
