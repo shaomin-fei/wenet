@@ -220,8 +220,11 @@ class Conv2dSubsampling4(BaseSubsampling):
         """
         x = x.unsqueeze(1)  # (b, c=1, t, f)
         x = self.conv(x)
-        b, c, t, f = x.size()
-        x = self.out(x.transpose(1, 2).contiguous().view(b, t, c * f))
+        b, c, t, f = x.size(
+        )  # if the input is (52,1,450,80), then the output is (52,512,111,19). 512 indicates there are 512 feature maps, 111 indicates there are 111 time windows,19 means at each time point t, each feature map has 19 features. SO the total features at time t is 512*19
+        x = self.out(
+            x.transpose(1, 2).contiguous().view(b, t, c * f)
+        )  # transpose 1 and 2 dim means put all features at time t together
         x, pos_emb = self.pos_enc(x, offset)
         return x, pos_emb, x_mask[:, :, 2::2][:, :, 2::2]
 

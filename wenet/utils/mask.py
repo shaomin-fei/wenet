@@ -184,7 +184,7 @@ def add_optional_chunk_mask(xs: torch.Tensor,
                                             num_left_chunks,
                                             xs.device)  # (L, L)
         chunk_masks = chunk_masks.unsqueeze(0)  # (1, L, L)
-        chunk_masks = masks & chunk_masks  # (B, L, L)
+        chunk_masks = masks & chunk_masks  # (B, L, L) masks has shape(batch,1,time),it indicates for each batch, from where the audio is padded
     elif static_chunk_size > 0:
         num_left_chunks = num_decoding_left_chunks
         chunk_masks = subsequent_chunk_mask(xs.size(1), static_chunk_size,

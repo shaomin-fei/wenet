@@ -160,8 +160,10 @@ def ctc_prefix_beam_search(
                     last = prefix[-1] if len(prefix) > 0 else None
                     if u == blank_id:  # blank
                         next_score = next_hyps[prefix]
-                        next_score.s = log_add(next_score.s,
-                                               prefix_score.score() + prob)
+                        next_score.s = log_add(
+                            next_score.
+                            s,  # merge pathes, next_score.s stands for the existed path, prefix_score.score() + prob is the prob of new generated path.
+                            prefix_score.score() + prob)
                         next_score.v_s = prefix_score.viterbi_score() + prob
                         next_score.times_s = prefix_score.times().copy()
                         # perfix not changed, copy the context from prefix

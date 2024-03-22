@@ -81,6 +81,8 @@ class ASRModel(torch.nn.Module):
         device: torch.device,
     ) -> Dict[str, Optional[torch.Tensor]]:
         """Frontend + Encoder + Decoder + Calc loss"""
+        #the shape of speech is (batch_size, num_padded_windows,num_fbank)
+        #e.g. (52,450,80), 52 indicates there are 52 waves, 450 indicates there are 450 windows, and each window has 80 fbank features
         speech = batch['feats'].to(device)
         speech_lengths = batch['feats_lengths'].to(device)
         text = batch['target'].to(device)

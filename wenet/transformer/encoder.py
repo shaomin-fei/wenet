@@ -138,7 +138,8 @@ class BaseEncoder(torch.nn.Module):
             https://discuss.pytorch.org/t/any-different-between-model-input-and-model-forward-input/3690/2
         """
         T = xs.size(1)
-        masks = ~make_pad_mask(xs_lens, T).unsqueeze(1)  # (B, 1, T)
+        masks = ~make_pad_mask(xs_lens, T).unsqueeze(
+            1)  # (B, 1, T), T is the num_windows
         if self.global_cmvn is not None:
             xs = self.global_cmvn(xs)
         xs, pos_emb, masks = self.embed(xs, masks)
